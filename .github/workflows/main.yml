@@ -35,13 +35,18 @@ jobs:
         # Create ngrok tunnel to remote desktop
         Start-Process .\ngrok.exe -ArgumentList "tcp 3389" -NoNewWindow
         Start-Sleep -Seconds 10
-        while ($true) {
+        $success = $false
+        while (-not $success) {
           try {
             $tunnels = Invoke-RestMethod -Uri http://127.0.0.1:4040/api/tunnels
             if ($tunnels.tunnels) {
               $ngrokUrl = $tunnels.tunnels[0].public_url
-              Write-Output "ngrok tunnel is available at: $ngrokUrl"
-              break
+              if ($ngrokUrl -like "tcp.us-cal-1.ngrok.io*") {
+                Write-Output "ngrok tunnel is available at: $ngrokUrl"
+                $success = $true
+              } else {
+                Write-Output "Received a non-preferred ngrok URL: $ngrokUrl. Retrying..."
+              }
             }
           } catch {
             Write-Output "Waiting for ngrok to initialize..."
