@@ -50,14 +50,12 @@ jobs:
               if ($ngrokUrl -like "tcp.us-cal-1.ngrok.io*") {
                 Write-Output "ngrok tunnel is available at: $ngrokUrl"
                 $success = $true
-              } else {
-                Write-Output "Received a non-preferred ngrok URL: $ngrokUrl. Retrying..."
               }
             }
           } catch {
             Write-Output "Waiting for ngrok to initialize..."
-            Start-Sleep -Seconds 5
           }
+          Start-Sleep -Seconds 5
         }
         
         # Keep the script running
