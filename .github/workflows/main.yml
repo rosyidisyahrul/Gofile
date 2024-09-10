@@ -18,46 +18,36 @@ jobs:
         # Download ngrok
         Invoke-WebRequest -Uri "https://bin.equinox.io/c/bNyj1mQVY4c/ngrok-v3-stable-windows-amd64.zip" -OutFile ngrok.zip
         Expand-Archive -Path ngrok.zip -DestinationPath ./
-        
         # Authenticate with ngrok
         $Env:NGROK_AUTH_TOKEN = "${{ secrets.NGROK_AUTH_TOKEN }}"
-        .\ngrok.exe authtoken $Env:NGROK_AUTH_TOKEN > $null 2>&1
-        
+        .\ngrok.exe authtoken $Env:NGROK_AUTH_TOKEN
         # Enable Remote Desktop
-        Set-ItemProperty -Path 'HKLM:\System\CurrentControlSet\Control\Terminal Server' -Name "fDenyTSConnections" -Value 0 > $null 2>&1
-        Enable-NetFirewallRule -DisplayGroup "Remote Desktop" > $null 2>&1
-        Set-ItemProperty -Path 'HKLM:\System\CurrentControlSet\Control\Terminal Server\WinStations\RDP-Tcp' -Name "UserAuthentication" -Value 1 > $null 2>&1
-        
+        Set-ItemProperty -Path 'HKLM:\System\CurrentControlSet\Control\Terminal Server' -Name "fDenyTSConnections" -Value 0
+        Enable-NetFirewallRule -DisplayGroup "Remote Desktop"
+        Set-ItemProperty -Path 'HKLM:\System\CurrentControlSet\Control\Terminal Server\WinStations\RDP-Tcp' -Name "UserAuthentication" -Value 1
         # Create or update runneradmin user
         if (Get-LocalUser -Name "yonk13" -ErrorAction SilentlyContinue) {
-            Set-LocalUser -Name "yonk13" -Password (ConvertTo-SecureString -AsPlainText "Yonk123@" -Force) > $null 2>&1
+            Set-LocalUser -Name "yonk13" -Password (ConvertTo-SecureString -AsPlainText "Yonk123@" -Force)
         } else {
-            New-LocalUser -Name "yonk13" -Password (ConvertTo-SecureString -AsPlainText "Yonk123@" -Force) -UserMayNotChangePassword -PasswordNeverExpires -AccountNeverExpires > $null 2>&1
-            Add-LocalGroupMember -Group "Administrators" -Member "yonk13" > $null 2>&1
+            New-LocalUser -Name "yonk13" -Password (ConvertTo-SecureString -AsPlainText "Yonk1223@" -Force) -UserMayNotChangePassword -PasswordNeverExpires -AccountNeverExpires
+            Add-LocalGroupMember -Group "Administrators" -Member "yonk13"
         }
-        
         # Create ngrok tunnel to remote desktop
-        Start-Process .\ngrok.exe -ArgumentList "tcp 3389" -NoNewWindow > $null 2>&1
+        Start-Process .\ngrok.exe -ArgumentList "tcp 3389" -NoNewWindow
         Start-Sleep -Seconds 10
-        
-        # Wait for ngrok tunnel to become available
-        $success = $false
-        while (-not $success) {
+        while ($true) {
           try {
             $tunnels = Invoke-RestMethod -Uri http://127.0.0.1:4040/api/tunnels
             if ($tunnels.tunnels) {
               $ngrokUrl = $tunnels.tunnels[0].public_url
-              if ($ngrokUrl -like "tcp.us-cal-1.ngrok.io*") {
-                Write-Output "ngrok tunnel is available at: $ngrokUrl"
-                $success = $true
-              }
+              Write-Output "ngrok tunnel is available at: $ngrokUrl"
+              break
             }
           } catch {
             Write-Output "Waiting for ngrok to initialize..."
+            Start-Sleep -Seconds 5
           }
-          Start-Sleep -Seconds 5
         }
-        
         # Keep the script running
         while ($true) {
           Start-Sleep -Seconds 300
